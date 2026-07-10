@@ -1,1 +1,59 @@
-/* You can add global styles to this file, and also import other style files */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+:root {
+  /* Fonds */
+  --bg-page: #0A0D12;
+  --bg-surface-1: #12161D;
+  --bg-surface-2: #171C25;
+  --bg-surface-3: #1D2330;
+
+  /* Bordures */
+  --border: #232A35;
+  --border-strong: #333D4C;
+
+  /* Texte */
+  --text-primary: #E8ECF1;
+  --text-secondary: #8C96A6;
+  --text-muted: #545E6C;
+
+  /* Marque / signal (actions humaines) */
+  --brand: #FFB238;
+  --brand-hover: #FFC562;
+  --on-brand: #241703;
+
+  /* Agent IA (exclusivement pour ce que l'IA fait) */
+  --agent: #8B7CF6;
+  --bg-agent: rgba(139, 124, 246, 0.12);
+  --text-agent: #B7ACFA;
+
+  /* Statuts (sémantique fixe, ne jamais réassigner) */
+  --success: #34D399;
+  --bg-success: rgba(52, 211, 153, 0.12);
+  --warning: #FF9F40;
+  --bg-warning: rgba(255, 159, 64, 0.12);
+  --critical: #FF5C5C;
+  --bg-critical: rgba(255, 92, 92, 0.12);
+  --info: #4FA8FF;
+  --bg-info: rgba(79, 168, 255, 0.12);
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: "IBM Plex Sans", sans-serif;
+}
+
+/* Respect du mouvement réduit pour toute animation (notamment le Pulse) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
