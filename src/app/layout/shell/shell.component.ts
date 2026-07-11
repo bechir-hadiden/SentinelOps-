@@ -4,6 +4,7 @@ import { Router, RouterOutlet, NavigationStart, NavigationEnd, NavigationCancel,
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { TopbarComponent } from '../topbar/topbar.component';
 import { PulseLineComponent } from '../../shared/pulse-line/pulse-line.component';
+import { TokenStorageService } from '../../services/token-storage.service';
 
 @Component({
   selector: 'app-shell',
@@ -14,7 +15,7 @@ import { PulseLineComponent } from '../../shared/pulse-line/pulse-line.component
     <div class="flex h-screen w-full bg-[var(--bg-page)]">
       <app-sidebar class="shrink-0" />
 
-      <div class="flex flex-1 flex-col overflow-hidden">
+      <div class="flex flex-1 flex-col overflow-hiddenf">
         <app-topbar />
 
         <!-- Global navigation loading indicator, uses the Pulse signature element -->
@@ -35,6 +36,7 @@ export class ShellComponent {
   private readonly router = inject(Router);
 
   protected readonly isNavigating = signal(false);
+  private readonly tokenStorage = inject(TokenStorageService);
 
   constructor() {
     this.router.events.subscribe((event) => {
@@ -49,4 +51,9 @@ export class ShellComponent {
       }
     });
   }
+
+  protected onLogout(): void {
+  this.tokenStorage.clearToken();
+  this.router.navigate(['/login']);
+}
 }

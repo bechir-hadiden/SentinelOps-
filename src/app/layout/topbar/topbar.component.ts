@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { PulseLineComponent } from '../../shared/pulse-line/pulse-line.component';
+import { TokenStorageService } from '../../services/token-storage.service';
 
 @Component({
   selector: 'app-topbar',
@@ -24,14 +26,38 @@ import { PulseLineComponent } from '../../shared/pulse-line/pulse-line.component
           Tous systèmes opérationnels
         </div>
 
-        <!-- User avatar -->
-        <div
-          class="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[var(--bg-surface-3)] font-['IBM_Plex_Mono'] text-xs font-medium text-[var(--text-secondary)]"
-        >
-          JD
+        <!-- User profile container -->
+        <div class="flex items-center gap-3 border-l border-[var(--border)] pl-4">
+          <!-- User avatar -->
+          <div
+            class="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[var(--bg-surface-3)] font-['IBM_Plex_Mono'] text-xs font-medium text-[var(--text-secondary)]"
+          >
+            JD
+          </div>
+
+          <!-- Disconnect/Logout Button -->
+          <button
+            (click)="logout()"
+            title="Se déconnecter"
+            class="flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-[var(--border)] bg-transparent text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-surface-3)] hover:text-[var(--critical)]"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       </div>
     </header>
   `,
 })
-export class TopbarComponent {}
+export class TopbarComponent {
+  private readonly router = inject(Router);
+  private readonly tokenStorage = inject(TokenStorageService);
+
+  protected logout(): void {
+        this.tokenStorage.clearToken();
+    this.router.navigate(['/login']);
+  }
+}
