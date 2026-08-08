@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { ShellComponent } from './layout/shell/shell.component';
 import { LoginComponent } from './pages/login/login.component';
 import { authGuard } from './guards/auth.guard';
+import { ClustersComponent } from './pages/clusters/clusters.component';
 
 export const routes: Routes = [
   // {
@@ -12,6 +13,8 @@ export const routes: Routes = [
   // },
 
     { path: 'login', component: LoginComponent, title: 'Connexion · SentinelOps' },
+    { path: 'clusters', component: ClustersComponent }, // remplace la ligne PlaceholderComponent existante
+
 
   {
     path: '',
