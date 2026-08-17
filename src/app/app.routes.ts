@@ -1,17 +1,37 @@
 import { Routes } from '@angular/router';
 import { ShellComponent } from './layout/shell/shell.component';
+import { LoginComponent } from './pages/login/login.component';
+import { authGuard } from './guards/auth.guard';
+import { ClustersComponent } from './pages/clusters/clusters.component';
 
 export const routes: Routes = [
+  // {
+  //   path: 'login',
+  //   loadComponent: () =>
+  //     import('./pages/login/login.component').then((m) => m.LoginComponent),
+  //   title: 'Connexion · SentinelOps',
+  // },
+
+    { path: 'login', component: LoginComponent, title: 'Connexion · SentinelOps' },
+    { path: 'clusters', component: ClustersComponent }, // remplace la ligne PlaceholderComponent existante
+
+
+  {
+    path: '',
+    pathMatch: 'full',
+    redirectTo: 'login',
+  },
   {
     path: '',
     component: ShellComponent,
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
         path: 'dashboard',
         loadComponent: () =>
           import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent),
         title: 'Dashboard · SentinelOps',
+          canActivate: [authGuard],
+
       },
       {
         path: 'topology',
@@ -112,5 +132,5 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: 'dashboard' },
+  { path: '**', redirectTo: 'login' },
 ];
