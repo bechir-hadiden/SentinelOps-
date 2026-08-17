@@ -262,32 +262,34 @@ export class IncidentDetailComponent implements OnInit {
     });
   }
 
-  execute(): void {
-    if (!this.recommendation) return;
-    this.isExecuting = true;
-    this.executeError = '';
-    this.incidentService.executeRecommendation(this.recommendation.id).subscribe({
-      next: (result) => {
-        // Le backend renvoie du 200 OK même pour manual_action_required --
-        // ce n'est pas une erreur HTTP, donc on la traite explicitement ici.
-        if (result.status === 'manual_action_required' && this.recommendation) {
-          this.recommendation.status = 'manual_action_required';
-          this.recommendation.message = result.message;
-          this.recommendation.hint = result.hint;
-          this.preparePatchCorrectionForm();
-        } else if (this.recommendation) {
-          this.recommendation.status = 'executed';
+execute(): void {
+  if (!this.recommendation) return;
+  this.isExecuting = true;
+  this.executeError = '';
+  this.incidentService.executeRecommendation(this.recommendation.id).subscribe({
+    next: (response: any) => {
+      if (this.recommendation) {
+        this.recommendation.status = response.status;
+        if (response.patch_operations) {
+          this.recommendation.patch_operations = response.patch_operations;
         }
-        this.isExecuting = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.executeError = err?.error?.error || "Impossible d'exécuter cette action";
-        this.isExecuting = false;
-        this.cdr.detectChanges();
-      },
-    });
-  }
+      }
+      if (response.status === 'execution_failed' || response.status === 'manual_action_required') {
+        this.executeError = response.message || 'L\'action n\'a pas résolu le problème.';
+      }
+      if (response.status === 'manual_action_required') {
+        this.preparePatchCorrectionForm();  // ← ligne ajoutée
+      }
+      this.isExecuting = false;
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      this.executeError = err?.error?.error || "Impossible d'exécuter cette action";
+      this.isExecuting = false;
+      this.cdr.detectChanges();
+    },
+  });
+}
 
   // Détermine si on peut proposer un formulaire de correction (cas "patch"
   // avec des champs modifiables) plutôt qu'un simple message d'intervention manuelle.

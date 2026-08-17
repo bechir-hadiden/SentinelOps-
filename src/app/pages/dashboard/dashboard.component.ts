@@ -44,7 +44,7 @@ const POLL_INTERVAL_MS = 20000; // 20s -- assez réactif sans spammer le backend
 
     <div *ngIf="!isLoading && !errorMessage">
       <!-- Résumé global tous clusters confondus -->
-      <div class="mb-6 grid grid-cols-4 gap-3.5">
+      <div class="mb-4 grid grid-cols-4 gap-3.5">
         <div class="rounded-md border border-border bg-surface2 p-4">
           <div class="mb-2 text-xs text-secondaryText">Clusters surveillés</div>
           <div class="font-display text-[26px] font-semibold">{{ clusters.length }}</div>
@@ -63,8 +63,40 @@ const POLL_INTERVAL_MS = 20000; // 20s -- assez réactif sans spammer le backend
         </div>
       </div>
 
+      <!-- Mini-cartes par cluster -- coup d'œil rapide, clic = scroll vers le détail -->
+      <div
+        *ngIf="clusters.length > 1"
+        class="mb-6 flex gap-3 overflow-x-auto pb-1"
+      >
+        <button
+          *ngFor="let cluster of clusters"
+          (click)="scrollToCluster(cluster.cluster_id)"
+          class="flex min-w-[180px] flex-shrink-0 items-center justify-between rounded-md border px-3.5 py-2.5 text-left transition-colors hover:bg-surface3"
+          [class.border-critical]="cluster.active_incidents > 0"
+          [class.border-border]="cluster.active_incidents === 0"
+          [class.bg-critical-bg]="cluster.active_incidents > 0"
+          [class.bg-surface2]="cluster.active_incidents === 0"
+        >
+          <div>
+            <div class="text-[12.5px] font-medium text-primaryText">{{ cluster.cluster_name }}</div>
+            <div class="mt-0.5 text-[11px] text-secondaryText">{{ cluster.total_pods }} pod(s)</div>
+          </div>
+          <div
+            class="font-display text-lg font-semibold"
+            [class.text-critical]="cluster.active_incidents > 0"
+            [class.text-success]="cluster.active_incidents === 0"
+          >
+            {{ cluster.active_incidents }}
+          </div>
+        </button>
+      </div>
+
       <!-- Une section par cluster -->
-      <div *ngFor="let cluster of clusters" class="mb-6 overflow-hidden rounded-md border border-border bg-surface2">
+      <div
+        *ngFor="let cluster of clusters"
+        [id]="'cluster-' + cluster.cluster_id"
+        class="mb-6 overflow-hidden rounded-md border border-border bg-surface2 scroll-mt-4"
+      >
         <div class="flex items-center justify-between border-b border-border px-4.5 py-3.5">
           <div class="flex items-center gap-2.5">
             <h3 class="text-sm font-medium">{{ cluster.cluster_name }}</h3>
@@ -182,6 +214,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   onPodClick(pod: PodDashboardInfo): void {
     if (pod.has_incident && pod.incident_id) {
       this.router.navigate(['/incidents', pod.incident_id]);
+    }
+  }
+
+  scrollToCluster(clusterId: string): void {
+    const el = document.getElementById('cluster-' + clusterId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 
