@@ -7,27 +7,23 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
   standalone: true,
   imports: [CommonModule, StatusBadgeComponent],
   template: `
-    <div class="space-y-6">
+    <div class="p-6 space-y-4">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-primaryText font-display uppercase">Historique des Incidents</h1>
-        <p class="text-sm text-secondaryText">Consultez l'historique complet des incidents résolus.</p>
+        <h1 class="text-xl font-bold text-primaryText font-sans">History</h1>
+        <p class="text-xs text-secondaryText mt-0.5">Chronological journal of cluster events and remediation runs</p>
       </div>
 
-      <div class="rounded-md border border-border bg-surface1 overflow-hidden">
-        <div class="divide-y divide-border text-[13.5px]">
-          <div *ngFor="let item of history" class="p-4 flex items-center justify-between hover:bg-surface2/30 transition-colors">
+      <div class="rounded-lg border border-border bg-surface1 overflow-hidden">
+        <div class="divide-y divide-border text-xs">
+          <div *ngFor="let item of historyItems" class="p-4 flex items-center justify-between hover:bg-surface2/50 transition-colors">
             <div class="space-y-1">
               <div class="flex items-center gap-2">
-                <span class="font-mono text-xs font-bold text-mutedText">[{{ item.id }}]</span>
-                <span class="font-semibold text-primaryText">{{ item.service }}</span>
-                <app-status-badge status="success" label="Résolu"></app-status-badge>
+                <app-status-badge [status]="item.status === 'SUCCESS' ? 'healthy' : 'critical'"></app-status-badge>
+                <span class="font-semibold text-primaryText">{{ item.title }}</span>
               </div>
-              <p class="text-xs text-secondaryText">{{ item.description }}</p>
+              <p class="text-xs text-secondaryText font-mono">{{ item.details }}</p>
             </div>
-            <div class="text-right text-xs text-mutedText font-mono">
-              <p>Durée : {{ item.duration }}</p>
-              <p>{{ item.resolvedAt }}</p>
-            </div>
+            <span class="text-xs font-mono text-mutedText">{{ item.time }}</span>
           </div>
         </div>
       </div>
@@ -35,9 +31,10 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
   `,
 })
 export class HistoryComponent {
-  history = [
-    { id: 'INC-1044', service: 'redis-cache', description: 'Échec de réplication Master/Slave résolu après redémarrage des sentinelles Redis.', duration: '14 min', resolvedAt: 'Hier, 18:32' },
-    { id: 'INC-1042', service: 'email-sender', description: 'Expiration des API credentials Sendgrid résolue par renouvellement du secret.', duration: '45 min', resolvedAt: '07 Juil, 10:15' },
-    { id: 'INC-1039', service: 'frontend-app', description: 'Fuite mémoire mineure résolue par rollback de la version v2.1.2 à v2.1.1.', duration: '1h 12m', resolvedAt: '05 Juil, 14:02' },
+  historyItems = [
+    { title: "Remediation Executed: Restart API Gateway", details: "kubectl rollout restart deployment/api-gateway -n default", status: "SUCCESS", time: "10m ago" },
+    { title: "Autonomous Diagnostic: OOMKilled detected", details: "Identified container memory limit starvation (64Mi)", status: "SUCCESS", time: "25m ago" },
+    { title: "ConfigMap Created: cache-config", details: "Restored missing maxmemory configuration", status: "SUCCESS", time: "1h ago" },
+    { title: "Ingress Created: billing-service", details: "Configured HTTP path /api/v1/billing with nginx class", status: "SUCCESS", time: "3h ago" },
   ];
 }

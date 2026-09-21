@@ -1,66 +1,89 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 interface LogLine {
-  timestamp: string;
-  level: 'info' | 'warn' | 'error';
-  service: string;
-  message: string;
+  t: string;
+  level: 'INFO' | 'WARN' | 'ERROR';
+  svc: string;
+  msg: string;
 }
 
 @Component({
   selector: 'app-logs',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight text-primaryText font-display uppercase">Explorateur de Logs</h1>
-          <p class="text-sm text-secondaryText">Consultez en direct les journaux d'exécution agrégés du cluster.</p>
+    <div class="p-6 space-y-4">
+      <!-- Controls -->
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-2">
+          <select
+            [(ngModel)]="selectedLevel"
+            class="px-3 py-1.5 rounded-md text-xs border border-border bg-surface2 text-primaryText outline-none focus:border-brand"
+          >
+            <option value="all">All levels</option>
+            <option value="INFO">Info</option>
+            <option value="WARN">Warning</option>
+            <option value="ERROR">Error</option>
+          </select>
         </div>
-        <div class="flex gap-2">
-          <button (click)="filterLevel('all')" class="text-xs px-2.5 py-1 rounded bg-surface3 text-secondaryText hover:text-primaryText">Tous</button>
-          <button (click)="filterLevel('error')" class="text-xs px-2.5 py-1 rounded bg-critical/10 text-critical border border-critical/20">Erreurs</button>
-        </div>
+
+        <button
+          (click)="refreshLogs()"
+          class="flex items-center gap-1.5 rounded-md border border-border bg-surface1 px-3 py-1.5 text-xs text-secondaryText hover:bg-surface2 hover:text-primaryText transition-colors"
+        >
+          <span>&#x21bb; Auto-refresh</span>
+        </button>
       </div>
 
-      <!-- Terminal Output -->
-      <div class="rounded-md border border-border bg-surface1 p-4 font-mono text-xs text-secondaryText space-y-1.5 overflow-auto max-h-[500px]">
-        <div *ngFor="let log of filteredLogs" class="flex gap-3 hover:bg-surface2/50 p-1 rounded">
-          <span class="text-mutedText shrink-0">{{ log.timestamp }}</span>
-          <span class="font-semibold shrink-0" [ngClass]="{
-            'text-success': log.level === 'info',
-            'text-warning': log.level === 'warn',
-            'text-critical': log.level === 'error'
-          }">[{{ log.level.toUpperCase() }}]</span>
-          <span class="text-brand shrink-0">[{{ log.service }}]</span>
-          <span class="text-primaryText break-all">{{ log.message }}</span>
+      <!-- Log Terminal Box -->
+      <div class="rounded-lg border border-border bg-page p-4 font-mono text-xs overflow-x-auto space-y-1 max-h-[600px] overflow-y-auto">
+        <div *ngFor="let l of filteredLogs" class="whitespace-nowrap hover:bg-surface1/50 px-1 py-0.5 rounded">
+          <span class="text-mutedText mr-3">{{ l.t }}</span>
+          <span
+            class="font-bold mr-3 inline-block w-12"
+            [ngClass]="{
+              'text-info': l.level === 'INFO',
+              'text-warning': l.level === 'WARN',
+              'text-critical': l.level === 'ERROR'
+            }"
+          >{{ l.level }}</span>
+          <span class="text-brand mr-3 font-semibold">{{ l.svc }}</span>
+          <span class="text-primaryText">{{ l.msg }}</span>
         </div>
       </div>
     </div>
   `,
 })
 export class LogsComponent {
-  selectedLevel: 'all' | 'error' = 'all';
+  selectedLevel = 'all';
 
   logs: LogLine[] = [
-    { timestamp: '09:49:15.102', level: 'info', service: 'nginx-ingress', message: '10.244.0.1 - - [09:49:15] "GET /login HTTP/1.1" 200 456' },
-    { timestamp: '09:49:22.008', level: 'error', service: 'auth-service', message: 'Failed to connect to database: auth-db. Connection timeout.' },
-    { timestamp: '09:49:25.882', level: 'warn', service: 'payment-gateway', message: 'External API Stripe latency is higher than expected: 1200ms' },
-    { timestamp: '09:49:31.902', level: 'info', service: 'user-service', message: 'User profile requested for ID=USR-9988' },
-    { timestamp: '09:49:45.312', level: 'error', service: 'auth-service', message: 'Failed to connect to database: auth-db. Connection timeout.' },
-    { timestamp: '09:49:50.003', level: 'info', service: 'notification-service', message: 'Dispatched alert email for INC-1049' },
+    { t: "08:42:11", level: "INFO", svc: "api-gateway", msg: "Handled GET /v1/orders 200 in 42ms" },
+    { t: "08:42:12", level: "INFO", svc: "api-gateway", msg: "Handled GET /v1/orders 200 in 38ms" },
+    { t: "08:42:13", level: "ERROR", svc: "api-gateway", msg: "upstream connect error: postgres:5432 connection refused" },
+    { t: "08:42:13", level: "ERROR", svc: "postgres", msg: "FATAL: remaining connection slots are reserved" },
+    { t: "08:42:14", level: "WARN", svc: "remediation-agent", msg: "Detected repeated connection failures, evaluating hypotheses" },
+    { t: "08:42:16", level: "ERROR", svc: "api-gateway", msg: "upstream connect error: postgres:5432 connection refused" },
+    { t: "08:42:18", level: "INFO", svc: "api-gateway", msg: "Handled GET /v1/health 200 in 4ms" },
+    { t: "08:42:21", level: "ERROR", svc: "checkout-service", msg: "timeout waiting for api-gateway response" },
+    { t: "08:42:25", level: "INFO", svc: "ingestion-service", msg: "Scanned 24 pods in sentinelops-realtest: 1 crash detected" },
+    { t: "08:42:26", level: "INFO", svc: "diagnosis-agent", msg: "Initiated LLM context evaluation for incident INC-2026-00142" },
   ];
 
-  get filteredLogs() {
-    if (this.selectedLevel === 'error') {
-      return this.logs.filter(l => l.level === 'error');
-    }
-    return this.logs;
+  get filteredLogs(): LogLine[] {
+    if (this.selectedLevel === 'all') return this.logs;
+    return this.logs.filter(l => l.level === this.selectedLevel);
   }
 
-  filterLevel(level: 'all' | 'error') {
-    this.selectedLevel = level;
+  refreshLogs(): void {
+    const now = new Date().toLocaleTimeString();
+    this.logs.unshift({
+      t: now,
+      level: 'INFO',
+      svc: 'ingestion-service',
+      msg: 'Heartbeat scan completed across all active clusters (0 errors)'
+    });
   }
 }

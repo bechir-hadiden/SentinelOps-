@@ -1,104 +1,91 @@
-<div class="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bg-page)] px-4 py-12 sm:px-6 lg:px-8">
-  
-  <!-- Ambient light effect in background -->
-  <div class="pointer-events-none absolute -left-1/4 -top-1/4 h-[600px] w-[600px] rounded-full bg-[var(--brand)] opacity-[0.03] blur-[120px]"></div>
-  <div class="pointer-events-none absolute -bottom-1/4 -right-1/4 h-[600px] w-[600px] rounded-full bg-[var(--agent)] opacity-[0.03] blur-[120px]"></div>
+<div class="min-h-screen flex items-center justify-center px-4 bg-page">
+  <div class="w-full max-w-sm">
+    <!-- Brand Icon and Title -->
+    <div class="flex items-center justify-center mb-6">
+      <svg width="100%" height="auto" viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg" style="max-width: 420px;">
+        <rect width="700" height="180" fill="#0B0F14"/>
 
-  <div class="w-full max-w-md space-y-8 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface-1)] p-8 shadow-2xl backdrop-blur-md">
-    
-    <!-- Logo & Header -->
-    <div class="flex flex-col items-center justify-center text-center">
-      <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface-2)] text-[var(--brand)] shadow-inner">
-        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-        </svg>
-      </div>
-      <h2 class="mt-4 font-['IBM_Plex_Sans_Condensed'] text-2xl font-bold uppercase tracking-wider text-[var(--text-primary)]">
-        SentinelOps
-      </h2>
-      <p class="mt-2 font-['IBM_Plex_Sans'] text-xs text-[var(--text-secondary)]">
-        Console de remédiation autonome & monitoring
-      </p>
+        <!-- Icon -->
+        <g transform="translate(40, 24)">
+          <path d="M60 8 L108 26 V64 C108 97 88 119 60 133 C32 119 12 97 12 64 V26 Z"
+                fill="#151D26" stroke="#5B8CFF" stroke-width="4.5" stroke-linejoin="round"/>
+          <circle cx="60" cy="8" r="3.2" fill="#5B8CFF"/>
+          <circle cx="108" cy="26" r="3.2" fill="#5B8CFF"/>
+          <circle cx="12" cy="26" r="3.2" fill="#5B8CFF"/>
+          <path d="M22 74 L42 74 L50 50 L60 92 L68 62 L76 74 L98 74"
+                fill="none" stroke="#E6EDF3" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="76" cy="74" r="6.5" fill="#0B0F14" stroke="#22C55E" stroke-width="2.5"/>
+          <circle cx="76" cy="74" r="2.4" fill="#22C55E"/>
+        </g>
+
+        <!-- Wordmark -->
+        <text x="200" y="94" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="46" font-weight="600" letter-spacing="-0.5">
+          <tspan fill="#E6EDF3">Sentinel</tspan><tspan fill="#5B8CFF">Ops</tspan>
+        </text>
+
+        <!-- Tagline -->
+        <text x="202" y="122" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" fill="#8B98A8">
+          Kubernetes observability &amp; automated remediation
+        </text>
+      </svg>
     </div>
 
-    <!-- Form -->
-<form class="mt-8 space-y-6" (submit)="onSubmit()">
-      
-      <div class="space-y-4 rounded-md">
-        <!-- Username/Email field -->
-        <div class="flex flex-col gap-1.5">
-          <label for="email" class="font-['IBM_Plex_Sans_Condensed'] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
-            Identifiant ou Email
-          </label>
+    <!-- Feature Pillars -->
+    <!-- <div class="text-center mb-6 space-y-1">
+      <div class="text-xs text-secondaryText font-medium">Kubernetes Observability</div>
+      <div class="text-xs text-secondaryText font-medium">AI Incident Diagnosis</div>
+      <div class="text-xs text-secondaryText font-medium">Automated Remediation</div>
+    </div> -->
+
+    <!-- Card -->
+    <div class="rounded-lg border border-border bg-surface1 p-6 shadow-xl">
+      <form class="space-y-4" (submit)="onSubmit()">
+        <div>
+          <label class="block text-xs font-medium text-secondaryText mb-1.5">Email</label>
           <input
-            id="email"
+            [(ngModel)]="email"
             name="email"
-            type="text"
+            type="email"
             required
-[(ngModel)]="email"
-            class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface-2)] px-3 py-2.5 font-['IBM_Plex_Sans'] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-all focus:border-[var(--brand)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
-            placeholder="admin@sentinelops.ai"
+            placeholder="test@sentinelops.io"
+            class="w-full rounded-md border border-border bg-surface2 px-3 py-2 text-sm text-primaryText outline-none focus:border-brand transition-colors placeholder-mutedText"
           />
         </div>
 
-        <!-- Password field -->
-        <div class="flex flex-col gap-1.5">
-          <div class="flex items-center justify-between">
-            <label for="password" class="font-['IBM_Plex_Sans_Condensed'] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
-              Mot de passe
-            </label>
-            <a href="#" class="font-['IBM_Plex_Sans'] text-xs text-[var(--brand)] hover:text-[var(--brand-hover)]">
-              Oublié ?
-            </a>
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-secondaryText mb-1.5">Password</label>
           <input
-            id="password"
+            [(ngModel)]="password"
             name="password"
             type="password"
             required
-            [(ngModel)]="password"
-            class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface-2)] px-3 py-2.5 font-['IBM_Plex_Sans'] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-all focus:border-[var(--brand)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
-            placeholder="••••••••"
+            placeholder="••••••••••••"
+            class="w-full rounded-md border border-border bg-surface2 px-3 py-2 text-sm text-primaryText outline-none focus:border-brand transition-colors placeholder-mutedText"
           />
         </div>
-      </div>
 
-      <!-- Error Alert -->
-      @if (errorMsg()) {
-        <div class="rounded-lg border border-[rgba(255,92,92,0.2)] bg-[var(--bg-critical)] px-4 py-3 font-['IBM_Plex_Sans'] text-xs text-[var(--critical)]">
+        <div *ngIf="errorMsg()" class="rounded-md border border-critical/30 bg-critical/10 p-2.5 text-xs text-critical">
           {{ errorMsg() }}
         </div>
-      }
 
-      <!-- Submit Button -->
-      <div>
         <button
           type="submit"
           [disabled]="isLoading()"
-          class="relative flex w-full justify-center rounded-lg bg-[var(--brand)] px-4 py-3 font-['IBM_Plex_Sans'] text-sm font-semibold text-[var(--on-brand)] transition-colors hover:bg-[var(--brand-hover)] focus:outline-none disabled:opacity-50"
+          class="w-full rounded-md bg-brand py-2.5 text-sm font-semibold text-on-brand hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
-          @if (isLoading()) {
-            <svg class="mr-2 h-4 w-4 animate-spin text-[var(--on-brand)]" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Connexion en cours...
-          } @else {
-            Se connecter
-          }
+          <svg *ngIf="isLoading()" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span>{{ isLoading() ? 'Signing in...' : 'Sign in' }}</span>
         </button>
-      </div>
-    </form>
-
-    <!-- Credentials hint -->
-    <div class="rounded-lg border border-[var(--border)] bg-[var(--bg-surface-2)] p-4 text-center">
-      <p class="font-['IBM_Plex_Sans'] text-[11px] text-[var(--text-secondary)]">
-        Comptes de test rapide :
-      </p>
-      <p class="mt-1 font-['IBM_Plex_Mono'] text-xs text-[var(--text-primary)]">
-        admin&#64;sentinelops.ai / admin123
-      </p>
+      </form>
     </div>
 
+    <!-- Test credentials helper box -->
+    <div class="text-center text-xs mt-6 text-mutedText space-y-1">
+      <!-- <div>Secure access to your infrastructure</div>
+      <div class="font-mono text-[11px] text-secondaryText">test&#64;sentinelops.io / motdepasse123</div> -->
+    </div>
   </div>
 </div>

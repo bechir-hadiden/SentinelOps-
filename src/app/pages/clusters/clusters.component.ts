@@ -1,157 +1,192 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ClusterService, Cluster } from '../../services/cluster.service';
+import { IngestionService, ClusterDashboard } from '../../services/ingestion.service';
+import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-clusters',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, StatusBadgeComponent],
   template: `
-    <div class="mb-6 flex items-end justify-between">
-      <div>
-        <h1 class="font-display text-[22px] font-semibold">Clusters</h1>
-        <p class="mt-1 text-[13px] text-secondaryText">
-          Clusters Kubernetes connectés à votre organisation
-        </p>
+    <div class="p-6 space-y-6">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-primaryText font-sans">Clusters</h1>
+          <p class="text-xs text-secondaryText mt-0.5">Connected Kubernetes environments & isolated workloads</p>
+        </div>
+        <button
+          (click)="showForm = !showForm"
+          class="rounded-md bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand hover:bg-brand-hover transition-colors flex items-center gap-1.5"
+        >
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>{{ showForm ? 'Cancel' : 'Connect Cluster' }}</span>
+        </button>
       </div>
-      <button
-        (click)="showForm = !showForm"
-        class="rounded-md bg-brand px-4 py-2 text-[13.5px] font-medium text-brand-on hover:bg-brand-hover"
+
+      <!-- Add Cluster Form Modal/Card -->
+      <form
+        *ngIf="showForm"
+        (ngSubmit)="onCreateCluster()"
+        class="rounded-lg border border-border bg-surface1 p-5 space-y-4"
       >
-        {{ showForm ? 'Annuler' : '+ Connecter un cluster' }}
-      </button>
-    </div>
+        <div class="text-sm font-bold text-primaryText border-b border-border pb-2">Connect New Kubernetes Cluster</div>
 
-    <!-- Formulaire de création -->
-    <form
-      *ngIf="showForm"
-      (ngSubmit)="onCreateCluster()"
-      class="mb-6 rounded-md border border-border bg-surface2 p-5"
-    >
-      <div class="mb-3.5">
-        <label class="mb-1.5 block text-[13px] text-secondaryText">Nom du cluster</label>
-        <input
-          type="text"
-          [(ngModel)]="newClusterName"
-          name="name"
-          required
-          placeholder="cluster-prod-eu"
-          class="w-full rounded-md border border-borderStrong bg-surface1 px-3 py-2 text-sm text-primaryText outline-none focus:border-brand"
-        />
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-secondaryText mb-1">Cluster Name</label>
+            <input
+              type="text"
+              [(ngModel)]="newClusterName"
+              name="name"
+              required
+              class="w-full rounded-md border border-border bg-surface2 px-3 py-2 text-xs text-primaryText outline-none focus:border-brand"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-secondaryText mb-1">Kubernetes Version</label>
+            <input
+              type="text"
+              [(ngModel)]="newClusterK8sVersion"
+              name="k8sVersion"
+              class="w-full rounded-md border border-border bg-surface2 px-3 py-2 text-xs text-primaryText outline-none focus:border-brand"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-secondaryText mb-1">API Server URL</label>
+          <input
+            type="text"
+            [(ngModel)]="newClusterApiServer"
+            name="apiServer"
+            required
+            class="w-full rounded-md border border-border bg-surface2 px-3 py-2 font-mono text-xs text-primaryText outline-none focus:border-brand"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-secondaryText mb-1">CA Certificate </label>
+          <textarea
+            [(ngModel)]="newClusterCaCert"
+            name="caCert"
+            required
+            rows="2"
+            class="w-full rounded-md border border-border bg-surface2 px-3 py-2 font-mono text-[11px] text-primaryText outline-none focus:border-brand"
+          ></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-secondaryText mb-1">Service Account Token</label>
+          <textarea
+            [(ngModel)]="newClusterToken"
+            name="token"
+            required
+            rows="2"
+            class="w-full rounded-md border border-border bg-surface2 px-3 py-2 font-mono text-[11px] text-primaryText outline-none focus:border-brand"
+          ></textarea>
+        </div>
+
+        <div *ngIf="createErrorMessage" class="rounded-md bg-critical/10 border border-critical/30 p-2 text-xs text-critical">
+          {{ createErrorMessage }}
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="isCreating"
+          class="rounded-md bg-brand px-4 py-2 text-xs font-semibold text-on-brand hover:bg-brand-hover disabled:opacity-50"
+        >
+          {{ isCreating ? 'Connecting...' : 'Save & Connect' }}
+        </button>
+      </form>
+
+      <!-- Cluster Grid Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          *ngFor="let c of displayClusters"
+          (click)="goToClusterById(c.id)"
+          class="rounded-lg border border-border bg-surface1 p-5 hover:border-brand hover:bg-surface2/50 cursor-pointer transition-all flex flex-col justify-between group"
+        >
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <span class="font-bold text-sm text-primaryText group-hover:text-brand transition-colors">{{ c.name }}</span>
+              <app-status-badge [status]="(c.incidents || 0) > 0 ? 'critical' : 'healthy'"></app-status-badge>
+            </div>
+            <div class="font-mono text-xs text-mutedText mb-4">Kubernetes v{{ c.version || '1.30' }}</div>
+          </div>
+
+          <div class="border-t border-border pt-3 flex items-center justify-between text-xs text-secondaryText">
+            <div class="flex items-center gap-3">
+              <span><strong>{{ c.pods || 0 }}</strong> pods</span>
+              <span [ngClass]="(c.incidents || 0) > 0 ? 'text-critical font-semibold' : 'text-secondaryText'">
+                <strong>{{ c.incidents || 0 }}</strong> incident(s)
+              </span>
+            </div>
+            <span class="text-brand font-medium group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+          </div>
+        </div>
       </div>
 
-      <div class="mb-3.5">
-        <label class="mb-1.5 block text-[13px] text-secondaryText">Version Kubernetes</label>
-        <input
-          type="text"
-          [(ngModel)]="newClusterK8sVersion"
-          name="k8sVersion"
-          placeholder="1.29"
-          class="w-full rounded-md border border-borderStrong bg-surface1 px-3 py-2 text-sm text-primaryText outline-none focus:border-brand"
-        />
+      <!-- Clusters Table Summary -->
+      <div class="rounded-lg border border-border bg-surface1 overflow-hidden">
+        <div class="px-5 py-4 border-b border-border text-sm font-semibold text-primaryText">
+          Registered Clusters
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="text-left text-mutedText border-b border-border font-medium">
+                <th class="px-5 py-3">Name</th>
+                <th class="px-5 py-3">Version</th>
+                <th class="px-5 py-3">Status</th>
+                <th class="px-5 py-3">Connected</th>
+                <th class="px-5 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              <tr
+                *ngFor="let cluster of clusters"
+                class="hover:bg-surface2/50 transition-colors cursor-pointer"
+                (click)="goToCluster(cluster)"
+              >
+                <td class="px-5 py-3 font-semibold text-primaryText">{{ cluster.name }}</td>
+                <td class="px-5 py-3 font-mono text-secondaryText">v{{ cluster.k8s_version || '1.30' }}</td>
+                <td class="px-5 py-3">
+                  <app-status-badge [status]="'healthy'"></app-status-badge>
+                </td>
+                <td class="px-5 py-3 font-mono text-secondaryText text-[11px]">
+                  {{ cluster.connected_at | date: 'dd/MM/yyyy HH:mm' }}
+                </td>
+                <td class="px-5 py-3 text-right">
+                  <button
+                    class="rounded border border-border bg-surface2 px-2.5 py-1 text-[11px] font-medium text-secondaryText hover:text-primaryText hover:bg-surface3"
+                  >
+                    View Pods & Metrics &rarr;
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="clusters.length === 0 && !isLoading">
+                <td colspan="5" class="px-5 py-8 text-center text-secondaryText">
+                  No clusters connected. Click "Connect Cluster" to add one.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-
-      <div class="mb-3.5">
-        <label class="mb-1.5 block text-[13px] text-secondaryText">
-          Adresse de l'API server
-        </label>
-        <input
-          type="text"
-          [(ngModel)]="newClusterApiServer"
-          name="apiServer"
-          required
-          placeholder="https://1.2.3.4:6443"
-          class="w-full rounded-md border border-borderStrong bg-surface1 px-3 py-2 font-mono text-xs text-primaryText outline-none focus:border-brand"
-        />
-        <p class="mt-1 text-[11px] text-mutedText">
-          kubectl config view --minify -o jsonpath='&#123;.clusters[0].cluster.server&#125;'
-        </p>
-      </div>
-
-      <div class="mb-3.5">
-        <label class="mb-1.5 block text-[13px] text-secondaryText">
-          Certificat CA (base64)
-        </label>
-        <textarea
-          [(ngModel)]="newClusterCaCert"
-          name="caCert"
-          required
-          rows="3"
-          placeholder="LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t..."
-          class="w-full rounded-md border border-borderStrong bg-surface1 px-3 py-2 font-mono text-xs text-primaryText outline-none focus:border-brand"
-        ></textarea>
-        <p class="mt-1 text-[11px] text-mutedText">
-          kubectl config view --minify --raw -o jsonpath='&#123;.clusters[0].cluster.certificate-authority-data&#125;'
-        </p>
-      </div>
-
-      <div class="mb-4">
-        <label class="mb-1.5 block text-[13px] text-secondaryText">
-          Token du ServiceAccount
-        </label>
-        <textarea
-          [(ngModel)]="newClusterToken"
-          name="token"
-          required
-          rows="3"
-          placeholder="eyJhbGciOiJSUzI1NiIs..."
-          class="w-full rounded-md border border-borderStrong bg-surface1 px-3 py-2 font-mono text-xs text-primaryText outline-none focus:border-brand"
-        ></textarea>
-        <p class="mt-1 text-[11px] text-mutedText">
-          Token du ServiceAccount RBAC minimal appliqué sur le cluster (voir k8s-manifests/sentinelops-rbac.yaml)
-        </p>
-      </div>
-
-      <div *ngIf="createErrorMessage" class="mb-4 rounded-md bg-critical-bg px-3 py-2 text-[13px] text-critical">
-        {{ createErrorMessage }}
-      </div>
-
-      <button
-        type="submit"
-        [disabled]="isCreating"
-        class="rounded-md bg-brand px-4 py-2 text-[13.5px] font-medium text-brand-on hover:bg-brand-hover disabled:opacity-60"
-      >
-        {{ isCreating ? 'Connexion en cours...' : 'Connecter' }}
-      </button>
-    </form>
-
-    <div *ngIf="isLoading" class="text-[13.5px] text-secondaryText">
-      Chargement des clusters...
-    </div>
-
-    <div *ngIf="errorMessage" class="rounded-md bg-critical-bg px-4 py-3 text-[13.5px] text-critical">
-      {{ errorMessage }}
-    </div>
-
-    <div *ngIf="!isLoading && !errorMessage" class="overflow-hidden rounded-md border border-border bg-surface2">
-      <div *ngIf="clusters.length === 0" class="px-4.5 py-8 text-center text-[13.5px] text-secondaryText">
-        Aucun cluster connecté pour l'instant.
-      </div>
-
-      <table *ngIf="clusters.length > 0" class="w-full border-collapse">
-        <thead>
-          <tr>
-            <th class="border-b border-border px-4.5 py-2.5 text-left text-[11px] uppercase tracking-wide text-mutedText">Nom</th>
-            <th class="border-b border-border px-4.5 py-2.5 text-left text-[11px] uppercase tracking-wide text-mutedText">Version K8s</th>
-            <th class="border-b border-border px-4.5 py-2.5 text-left text-[11px] uppercase tracking-wide text-mutedText">Connecté le</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let cluster of clusters">
-            <td class="border-b border-border px-4.5 py-3 text-[13.5px]">{{ cluster.name }}</td>
-            <td class="border-b border-border px-4.5 py-3 font-mono text-[12.5px] text-secondaryText">{{ cluster.k8s_version }}</td>
-            <td class="border-b border-border px-4.5 py-3 font-mono text-[12.5px] text-secondaryText">
-              {{ cluster.connected_at | date: 'dd/MM/yyyy HH:mm' }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
     </div>
   `,
 })
 export class ClustersComponent implements OnInit {
   clusters: Cluster[] = [];
+  dashboardClusters: ClusterDashboard[] = [];
   isLoading = true;
   errorMessage = '';
 
@@ -164,48 +199,74 @@ export class ClustersComponent implements OnInit {
   isCreating = false;
   createErrorMessage = '';
 
-  constructor(private clusterService: ClusterService) {}
+  constructor(
+    private clusterService: ClusterService,
+    private ingestionService: IngestionService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
-    this.loadClusters();
+    this.loadAll();
   }
 
-  loadClusters(): void {
-    console.log('[Clusters] Chargement de la liste des clusters...');
+  loadAll(): void {
     this.isLoading = true;
-    this.clusterService.getClusters().subscribe({
-      next: (clusters) => {
-        console.log('[Clusters] Clusters reçus:', clusters);
+    forkJoin({
+      clusters: this.clusterService.getClusters().pipe(catchError(() => of([]))),
+      dashboards: this.ingestionService.getAllClustersDashboard().pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ clusters, dashboards }) => {
         this.clusters = clusters;
+        this.dashboardClusters = dashboards;
         this.isLoading = false;
       },
-      error: (err) => {
-        console.error('[Clusters] Erreur lors du chargement:', err);
-        this.errorMessage = 'Impossible de charger les clusters. Le service est-il démarré ?';
+      error: () => {
         this.isLoading = false;
-      },
+      }
     });
+  }
+
+  get displayClusters(): { id: string; name: string; version: string; pods: number; incidents: number }[] {
+    const dashMap = new Map(this.dashboardClusters.map(d => [d.cluster_id, d]));
+    return this.clusters.map(c => {
+      const d = dashMap.get(c.id);
+      return {
+        id: c.id,
+        name: c.name,
+        version: c.k8s_version || '1.30',
+        pods: d ? d.total_pods : 0,
+        incidents: d ? d.active_incidents : 0
+      };
+    });
+  }
+
+  goToCluster(cluster: Cluster): void {
+    this.router.navigate(['/clusters', cluster.id]);
+  }
+
+  goToClusterById(id: string): void {
+    this.router.navigate(['/clusters', id]);
   }
 
   onCreateCluster(): void {
     this.createErrorMessage = '';
     this.isCreating = true;
-
-    console.log('[Clusters] Création du cluster:', this.newClusterName);
-
+    let apiServer = this.newClusterApiServer.trim();
+    if (apiServer.startsWith('https://172.0.0.1:')) {
+      apiServer = apiServer.replace('https://172.0.0.1:', 'https://127.0.0.1:');
+    }
     this.clusterService
       .createCluster({
-        name: this.newClusterName,
-        k8s_version: this.newClusterK8sVersion,
+        name: this.newClusterName.trim(),
+        k8s_version: this.newClusterK8sVersion.trim() || '1.30',
         credentials: {
-          api_server: this.newClusterApiServer,
-          ca_cert: this.newClusterCaCert,
-          token: this.newClusterToken,
+          api_server: apiServer,
+          ca_cert: this.newClusterCaCert.trim(),
+          token: this.newClusterToken.trim(),
         },
       })
       .subscribe({
-        next: (cluster) => {
-          console.log('[Clusters] Cluster créé avec succès:', cluster);
+        next: () => {
           this.isCreating = false;
           this.showForm = false;
           this.newClusterName = '';
@@ -213,11 +274,10 @@ export class ClustersComponent implements OnInit {
           this.newClusterApiServer = '';
           this.newClusterCaCert = '';
           this.newClusterToken = '';
-          this.loadClusters();
+          this.loadAll();
         },
-        error: (err) => {
-          console.error('[Clusters] Erreur lors de la création:', err);
-          this.createErrorMessage = 'Impossible de créer le cluster';
+        error: () => {
+          this.createErrorMessage = 'Failed to create cluster connection.';
           this.isCreating = false;
         },
       });

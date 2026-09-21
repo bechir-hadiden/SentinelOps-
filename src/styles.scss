@@ -1,55 +1,88 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
-
 :root {
-  /* Fonds */
-  --bg-page: #0A0D12;
-  --bg-surface-1: #12161D;
-  --bg-surface-2: #171C25;
-  --bg-surface-3: #1D2330;
+  /* Design Tokens — SentinelOps (sentinelops.jsx) */
+  --bg-page: #0B0F14;
+  --bg-sidebar: #111820;
+  --bg-surface-1: #151D26;
+  --bg-surface-2: #19232E;
+  --bg-surface-3: #222D3B;
 
   /* Bordures */
-  --border: #232A35;
-  --border-strong: #333D4C;
+  --border: #263241;
+  --border-strong: #37475C;
 
-  /* Texte */
-  --text-primary: #E8ECF1;
-  --text-secondary: #8C96A6;
-  --text-muted: #545E6C;
+  /* Typographie */
+  --text-primary: #E6EDF3;
+  --text-secondary: #8B98A8;
+  --text-muted: #5E6D82;
 
-  /* Marque / signal (actions humaines) */
-  --brand: #FFB238;
-  --brand-hover: #FFC562;
-  --on-brand: #241703;
+  /* Couleurs de marque & actions */
+  --brand: #5B8CFF;
+  --brand-hover: #759FFF;
+  --brand-soft: rgba(91, 140, 255, 0.12);
+  --on-brand: #0B0F14;
 
-  /* Agent IA (exclusivement pour ce que l'IA fait) */
-  --agent: #8B7CF6;
-  --bg-agent: rgba(139, 124, 246, 0.12);
-  --text-agent: #B7ACFA;
+  /* Intelligence Artificielle (Purple) */
+  --agent: #A78BFA;
+  --bg-agent: rgba(167, 139, 250, 0.12);
+  --text-agent: #C4B5FD;
 
-  /* Statuts (sémantique fixe, ne jamais réassigner) */
-  --success: #34D399;
-  --bg-success: rgba(52, 211, 153, 0.12);
-  --warning: #FF9F40;
-  --bg-warning: rgba(255, 159, 64, 0.12);
-  --critical: #FF5C5C;
-  --bg-critical: rgba(255, 92, 92, 0.12);
-  --info: #4FA8FF;
-  --bg-info: rgba(79, 168, 255, 0.12);
+  /* Remédiation (Cyan) */
+  --remediation: #06B6D4;
+  --bg-remediation: rgba(6, 182, 212, 0.12);
+  --text-remediation: #67E8F9;
+
+  /* Statuts */
+  --success: #22C55E;
+  --bg-success: rgba(34, 197, 94, 0.12);
+  --warning: #F59E0B;
+  --bg-warning: rgba(245, 158, 11, 0.12);
+  --critical: #EF4444;
+  --bg-critical: rgba(239, 68, 68, 0.12);
+  --info: #38BDF8;
+  --bg-info: rgba(56, 189, 248, 0.12);
 }
 
 html, body {
   height: 100%;
   margin: 0;
-  background: var(--bg-page);
+  background-color: var(--bg-page);
   color: var(--text-primary);
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Respect du mouvement réduit pour toute animation (notamment le Pulse) */
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-page);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Code and Mono Elements */
+pre, code, kbd, samp {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

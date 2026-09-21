@@ -13,8 +13,8 @@ export const routes: Routes = [
   // },
 
     { path: 'login', component: LoginComponent, title: 'Connexion · SentinelOps' },
-    { path: 'clusters', component: ClustersComponent }, // remplace la ligne PlaceholderComponent existante
-
+    // { path: 'clusters', component: ClustersComponent }, // remplace la ligne PlaceholderComponent existante
+    // { path: 'clusters/:id', component: ClusterDashboardComponent },
 
   {
     path: '',
@@ -30,8 +30,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent),
         title: 'Dashboard · SentinelOps',
-          canActivate: [authGuard],
-
+        // TODO: réactiver après les tests -- canActivate: [authGuard],
       },
       {
         path: 'topology',
@@ -44,6 +43,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/clusters/clusters.component').then((m) => m.ClustersComponent),
         title: 'Clusters · SentinelOps',
+        // TODO: réactiver après les tests -- canActivate: [authGuard],
+      },
+      {
+        path: 'clusters/:id',
+        loadComponent: () =>
+          import('./pages/clusters/cluster-dashboard.component').then((m) => m.ClusterDashboardComponent),
+        title: 'Détail du cluster · SentinelOps',
+        // TODO: réactiver après les tests -- canActivate: [authGuard],
       },
       {
         path: 'incidents',
@@ -74,7 +81,7 @@ export const routes: Routes = [
       {
         path: 'metrics',
         loadComponent: () =>
-          import('./pages/metrics/metrics.component').then((m) => m.MetricsComponent),
+          import('./pages/metrics/metrics-chart.component').then((m) => m.MetricsChartComponent),
         title: 'Metrics · SentinelOps',
       },
       {
@@ -133,4 +140,4 @@ export const routes: Routes = [
     ],
   },
   { path: '**', redirectTo: 'login' },
-];
+];  

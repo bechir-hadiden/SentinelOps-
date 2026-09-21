@@ -1,248 +1,260 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { StatusBadgeComponent, AgentBadgeComponent } from '../../shared/status-badge/status-badge.component';
-import { PulseLineComponent } from '../../shared/pulse-line/pulse-line.component';
-import { IncidentService } from '../../services/incident.service';
-import { IngestionService, ClusterDashboard, PodDashboardInfo } from '../../services/ingestion.service';
+import { FormsModule } from '@angular/forms';
+import { StatusBadgeComponent, SeverityBadgeComponent, AgentBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { IncidentService, Incident } from '../../services/incident.service';
+import { ClusterService, Cluster } from '../../services/cluster.service';
+import { IngestionService, ClusterDashboard } from '../../services/ingestion.service';
 
-const POLL_INTERVAL_MS = 20000; // 20s -- assez réactif sans spammer le backend
+const POLL_INTERVAL_MS = 30000;
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, StatusBadgeComponent, AgentBadgeComponent, PulseLineComponent],
+  imports: [CommonModule, FormsModule, StatusBadgeComponent, SeverityBadgeComponent, AgentBadgeComponent],
   template: `
-    <div class="mb-6 flex items-end justify-between">
-      <div>
-        <h1 class="font-display text-[22px] font-semibold">Dashboard</h1>
-        <p class="mt-1 text-[13px] text-secondaryText">
-          Aperçu temps réel de l'ensemble de vos clusters surveillés
-        </p>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <label class="flex cursor-pointer items-center gap-2 text-[13px] text-secondaryText">
-          <input
-            type="checkbox"
-            [checked]="showOnlyIncidents"
-            (change)="showOnlyIncidents = !showOnlyIncidents"
-            class="h-3.5 w-3.5 accent-critical"
-          />
-          Afficher uniquement les pods en incident
-        </label>
-      </div>
-    </div>
-
-    <div *ngIf="isLoading" class="text-[13.5px] text-secondaryText">
-      Chargement des données...
-    </div>
-
-    <div *ngIf="errorMessage" class="rounded-md bg-critical-bg px-4 py-3 text-[13.5px] text-critical">
-      {{ errorMessage }}
-    </div>
-
-    <div *ngIf="!isLoading && !errorMessage">
-      <!-- Résumé global tous clusters confondus -->
-      <div class="mb-4 grid grid-cols-4 gap-3.5">
-        <div class="rounded-md border border-border bg-surface2 p-4">
-          <div class="mb-2 text-xs text-secondaryText">Clusters surveillés</div>
-          <div class="font-display text-[26px] font-semibold">{{ clusters.length }}</div>
+    <div class="p-6 space-y-6">
+      <!-- 4 Top Metric Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Clusters -->
+        <div class="rounded-lg border border-border bg-surface1 p-5">
+          <div class="text-xs font-medium text-secondaryText uppercase tracking-wide">Clusters</div>
+          <div class="mt-2 text-3xl font-bold text-primaryText font-sans">{{ clusters.length }}</div>
+          <div class="mt-1 text-xs font-medium text-success">{{ healthyClustersCount }} healthy</div>
         </div>
-        <div class="rounded-md border border-border bg-surface2 p-4">
-          <div class="mb-2 text-xs text-secondaryText">Pods au total</div>
-          <div class="font-display text-[26px] font-semibold">{{ totalPods }}</div>
-        </div>
-        <div class="rounded-md border border-border bg-surface2 p-4">
-          <div class="mb-2 text-xs text-secondaryText">Incidents actifs</div>
-          <div class="font-display text-[26px] font-semibold text-critical">{{ activeCount }}</div>
-        </div>
-        <div class="rounded-md border border-border bg-surface2 p-4">
-          <div class="mb-2 text-xs text-secondaryText">Incidents résolus</div>
-          <div class="font-display text-[26px] font-semibold text-success">{{ resolvedCount }}</div>
-        </div>
-      </div>
 
-      <!-- Mini-cartes par cluster -- coup d'œil rapide, clic = scroll vers le détail -->
-      <div
-        *ngIf="clusters.length > 1"
-        class="mb-6 flex gap-3 overflow-x-auto pb-1"
-      >
-        <button
-          *ngFor="let cluster of clusters"
-          (click)="scrollToCluster(cluster.cluster_id)"
-          class="flex min-w-[180px] flex-shrink-0 items-center justify-between rounded-md border px-3.5 py-2.5 text-left transition-colors hover:bg-surface3"
-          [class.border-critical]="cluster.active_incidents > 0"
-          [class.border-border]="cluster.active_incidents === 0"
-          [class.bg-critical-bg]="cluster.active_incidents > 0"
-          [class.bg-surface2]="cluster.active_incidents === 0"
-        >
-          <div>
-            <div class="text-[12.5px] font-medium text-primaryText">{{ cluster.cluster_name }}</div>
-            <div class="mt-0.5 text-[11px] text-secondaryText">{{ cluster.total_pods }} pod(s)</div>
+        <!-- Pods -->
+        <div class="rounded-lg border border-border bg-surface1 p-5">
+          <div class="text-xs font-medium text-secondaryText uppercase tracking-wide">Pods</div>
+          <div class="mt-2 text-3xl font-bold text-primaryText font-sans">{{ totalPods }}</div>
+          <div class="mt-1 text-xs font-medium text-success">{{ runningPodsCount }} running</div>
+        </div>
+
+        <!-- Active Incidents -->
+        <div class="rounded-lg border border-border bg-surface1 p-5">
+          <div class="text-xs font-medium text-secondaryText uppercase tracking-wide">Active Incidents</div>
+          <div class="mt-2 text-3xl font-bold font-sans" [ngClass]="activeCount > 0 ? 'text-critical' : 'text-primaryText'">{{ activeCount }}</div>
+          <div class="mt-1 text-xs font-medium" [ngClass]="criticalIncidentsCount > 0 ? 'text-critical' : 'text-secondaryText'">
+            {{ criticalIncidentsCount }} critical
           </div>
+        </div>
+
+        <!-- Resolved Incidents -->
+        <div class="rounded-lg border border-border bg-surface1 p-5">
+          <div class="text-xs font-medium text-secondaryText uppercase tracking-wide">Resolved Incidents</div>
+          <div class="mt-2 text-3xl font-bold text-success font-sans">{{ resolvedCount }}</div>
+          <div class="mt-1 text-xs font-medium text-success">Automated resolution</div>
+        </div>
+      </div>
+
+      <!-- Cluster Health Overview Card -->
+      <div class="rounded-lg border border-border bg-surface1 overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div class="text-sm font-semibold text-primaryText">Cluster Health</div>
+          <span class="text-xs font-mono text-mutedText">{{ clusters.length }} cluster(s) connected</span>
+        </div>
+
+        <div *ngIf="clusters.length === 0 && !isLoading" class="p-8 text-center text-xs text-secondaryText">
+          No clusters registered. Go to Clusters to add one.
+        </div>
+
+        <div class="divide-y divide-border">
           <div
-            class="font-display text-lg font-semibold"
-            [class.text-critical]="cluster.active_incidents > 0"
-            [class.text-success]="cluster.active_incidents === 0"
+            *ngFor="let c of clusters"
+            (click)="goToCluster(c.id)"
+            class="flex items-center justify-between px-5 py-3 hover:bg-surface2/50 cursor-pointer transition-colors"
           >
-            {{ cluster.active_incidents }}
-          </div>
-        </button>
-      </div>
+            <div class="flex items-center gap-3 min-w-0">
+              <app-status-badge [status]="getClusterIncidentCount(c.id) > 0 ? 'critical' : 'healthy'"></app-status-badge>
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-primaryText truncate">{{ c.name }}</div>
+                <div class="font-mono text-xs text-mutedText">v{{ c.k8s_version || '1.30' }}</div>
+              </div>
+            </div>
 
-      <!-- Une section par cluster -->
-      <div
-        *ngFor="let cluster of clusters"
-        [id]="'cluster-' + cluster.cluster_id"
-        class="mb-6 overflow-hidden rounded-md border border-border bg-surface2 scroll-mt-4"
-      >
-        <div class="flex items-center justify-between border-b border-border px-4.5 py-3.5">
-          <div class="flex items-center gap-2.5">
-            <h3 class="text-sm font-medium">{{ cluster.cluster_name }}</h3>
-            <span class="font-mono text-xs text-mutedText">AKS {{ cluster.k8s_version }}</span>
+            <div class="hidden sm:flex items-center gap-6 text-xs text-secondaryText">
+              <div>{{ getClusterPodCount(c.id) }} pods</div>
+              <div [ngClass]="getClusterIncidentCount(c.id) > 0 ? 'text-critical font-semibold' : 'text-secondaryText'">
+                {{ getClusterIncidentCount(c.id) }} incident(s)
+              </div>
+            </div>
           </div>
-          <div class="flex items-center gap-3">
-            <app-status-badge
-              [status]="cluster.active_incidents > 0 ? 'critical' : 'success'"
-              [label]="cluster.active_incidents > 0 ? (cluster.active_incidents + ' incident(s) actif(s)') : 'Tous systèmes opérationnels'"
-            ></app-status-badge>
-          </div>
-        </div>
-
-        <table class="w-full border-collapse">
-          <thead>
-            <tr>
-              <th class="border-b border-border px-4.5 py-2.5 text-left text-[11px] uppercase tracking-wide text-mutedText">Pod</th>
-              <th class="border-b border-border px-4.5 py-2.5 text-left text-[11px] uppercase tracking-wide text-mutedText">Namespace</th>
-              <th class="border-b border-border px-4.5 py-2.5 text-left text-[11px] uppercase tracking-wide text-mutedText">Statut</th>
-              <th class="border-b border-border px-4.5 py-2.5 text-left text-[11px] uppercase tracking-wide text-mutedText">Redémarrages</th>
-              <th class="border-b border-border px-4.5 py-2.5 text-left text-[11px] uppercase tracking-wide text-mutedText">CPU</th>
-              <th class="border-b border-border px-4.5 py-2.5 text-left text-[11px] uppercase tracking-wide text-mutedText">Mémoire</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              *ngFor="let pod of filteredPods(cluster)"
-              (click)="onPodClick(pod)"
-              [class.cursor-pointer]="pod.has_incident && pod.incident_id"
-              [class.hover:bg-surface3]="pod.has_incident && pod.incident_id"
-            >
-              <td class="border-b border-border px-4.5 py-3 font-mono text-[12.5px]">{{ pod.name }}</td>
-              <td class="border-b border-border px-4.5 py-3 text-[13px] text-secondaryText">{{ pod.namespace }}</td>
-              <td class="border-b border-border px-4.5 py-3">
-                <app-status-badge
-                  [status]="pod.has_incident ? 'critical' : 'success'"
-                  [label]="pod.has_incident ? pod.reason : 'OK'"
-                ></app-status-badge>
-              </td>
-              <td class="border-b border-border px-4.5 py-3 text-[13px]">{{ pod.restart_count }}</td>
-              <td class="border-b border-border px-4.5 py-3 font-mono text-[12.5px]">{{ formatCPU(pod.cpu) }}</td>
-              <td class="border-b border-border px-4.5 py-3 font-mono text-[12.5px]">{{ formatMemory(pod.memory_bytes) }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div
-          *ngIf="filteredPods(cluster).length === 0"
-          class="px-4.5 py-6 text-center text-[13px] text-secondaryText"
-        >
-          Aucun pod à afficher avec ce filtre.
         </div>
       </div>
 
-      <div *ngIf="clusters.length === 0" class="rounded-md border border-dashed border-border bg-surface1 p-10 text-center text-[13.5px] text-secondaryText">
-        Aucun cluster enregistré pour l'instant.
+      <!-- Active Incidents Table Card -->
+      <div class="rounded-lg border border-border bg-surface1 overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-border">
+          <div class="text-sm font-semibold text-primaryText">Active Incidents</div>
+
+          <!-- Search Filter -->
+          <div class="relative">
+            <svg class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-mutedText" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              [(ngModel)]="searchQuery"
+              placeholder="Search incidents..."
+              class="pl-8 pr-3 py-1.5 rounded-md text-xs border border-border bg-surface2 text-primaryText outline-none focus:border-brand w-56 transition-colors"
+            />
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="text-left text-mutedText border-b border-border font-medium">
+                <th class="px-5 py-3">Severity</th>
+                <th class="px-5 py-3">Incident</th>
+                <th class="px-5 py-3 hidden md:table-cell">Cluster</th>
+                <th class="px-5 py-3 hidden lg:table-cell">Resource</th>
+                <th class="px-5 py-3">Detected</th>
+                <th class="px-5 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              <tr
+                *ngFor="let inc of filteredIncidents"
+                (click)="goToIncident(inc.id)"
+                class="hover:bg-surface2/50 cursor-pointer transition-colors"
+              >
+                <td class="px-5 py-3">
+                  <app-severity-badge [severity]="inc.severity || 'warning'"></app-severity-badge>
+                </td>
+                <td class="px-5 py-3">
+                  <div class="font-semibold text-primaryText">{{ inc.title }}</div>
+                  <div class="font-mono text-[11px] text-mutedText">{{ inc.id }}</div>
+                </td>
+                <td class="px-5 py-3 hidden md:table-cell text-secondaryText">
+                  {{ inc.cluster_name || inc.cluster_id }}
+                </td>
+                <td class="px-5 py-3 hidden lg:table-cell font-mono text-secondaryText">
+                  {{ inc.service_name || inc.resource_name || 'deployment' }}
+                </td>
+                <td class="px-5 py-3 text-secondaryText font-mono text-[11px]">
+                  {{ inc.detected_at | date: 'HH:mm:ss' }}
+                </td>
+                <td class="px-5 py-3">
+                  <app-status-badge [status]="inc.status === 'resolved' ? 'resolved' : 'active'"></app-status-badge>
+                </td>
+              </tr>
+              <tr *ngIf="filteredIncidents.length === 0">
+                <td colspan="6" class="px-5 py-8 text-center text-secondaryText">
+                  No active incidents. Infrastructure operating normally.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   `,
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  clusters: ClusterDashboard[] = [];
-  isLoading = true;
-  errorMessage = '';
-  showOnlyIncidents = false;
+  clusters: Cluster[] = [];
+  telemetryMap: Map<string, ClusterDashboard> = new Map();
+  incidents: Incident[] = [];
+  isLoading = false;
+  searchQuery = '';
 
-  private pollHandle: ReturnType<typeof setInterval> | null = null;
+  private pollHandle: any = null;
 
   constructor(
     private incidentService: IncidentService,
+    private clusterService: ClusterService,
     private ingestionService: IngestionService,
     private router: Router,
   ) {}
 
   ngOnInit(): void {
-    this.loadDashboard(true);
-
-    // Rafraîchissement automatique -- ne remet pas isLoading à true pour
-    // éviter un flash de l'UI toutes les 20 secondes, juste une mise à jour
-    // silencieuse des données.
-    this.pollHandle = setInterval(() => this.loadDashboard(false), POLL_INTERVAL_MS);
+    this.loadInstantData();
+    this.pollHandle = setInterval(() => this.loadInstantData(), POLL_INTERVAL_MS);
   }
 
   ngOnDestroy(): void {
-    if (this.pollHandle !== null) {
+    if (this.pollHandle) {
       clearInterval(this.pollHandle);
     }
   }
 
-  private loadDashboard(showLoadingState: boolean): void {
-    if (showLoadingState) {
-      this.isLoading = true;
-    }
-    this.ingestionService.getAllClustersDashboard().subscribe({
+  loadInstantData(): void {
+    // 1. Instant loading from postgres (takes < 10ms)
+    this.clusterService.getClusters().subscribe({
       next: (clusters) => {
         this.clusters = clusters;
-        this.isLoading = false;
-        this.errorMessage = '';
       },
-      error: (err) => {
-        console.error('[Dashboard] Erreur:', err);
-        this.errorMessage = 'Impossible de charger les données des clusters';
-        this.isLoading = false;
+      error: () => {}
+    });
+
+    this.incidentService.getIncidents().subscribe({
+      next: (incidents) => {
+        this.incidents = incidents;
       },
+      error: () => {}
+    });
+
+    // 2. Background telemetry fetch (asynchronous)
+    this.ingestionService.getAllClustersDashboard().subscribe({
+      next: (dashboards) => {
+        dashboards.forEach(d => this.telemetryMap.set(d.cluster_id, d));
+      },
+      error: () => {}
     });
   }
 
-  filteredPods(cluster: ClusterDashboard): PodDashboardInfo[] {
-    if (!this.showOnlyIncidents) {
-      return cluster.pods;
-    }
-    return cluster.pods.filter((p) => p.has_incident);
-  }
+ getClusterPodCount(clusterId: string): number {
+  const t = this.telemetryMap.get(clusterId);
+  return t ? t.total_pods : 0;
+}
 
-  onPodClick(pod: PodDashboardInfo): void {
-    if (pod.has_incident && pod.incident_id) {
-      this.router.navigate(['/incidents', pod.incident_id]);
-    }
-  }
-
-  scrollToCluster(clusterId: string): void {
-    const el = document.getElementById('cluster-' + clusterId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
+getClusterIncidentCount(clusterId: string): number {
+  const t = this.telemetryMap.get(clusterId);
+  if (t) return t.active_incidents;
+  return this.incidents.filter(i => i.cluster_id === clusterId && i.status !== 'resolved').length;
+}
 
   get totalPods(): number {
-    return this.clusters.reduce((sum, c) => sum + c.total_pods, 0);
+  let sum = 0;
+  this.clusters.forEach(c => sum += this.getClusterPodCount(c.id));
+  return sum;
+}
+
+
+  get runningPodsCount(): number {
+  return Math.max(0, this.totalPods - this.activeCount);
+}
+
+  get healthyClustersCount(): number {
+    return this.clusters.filter(c => this.getClusterIncidentCount(c.id) === 0).length;
   }
 
   get activeCount(): number {
-    return this.clusters.reduce((sum, c) => sum + c.active_incidents, 0);
+    return this.incidents.filter(i => i.status !== 'resolved').length;
+  }
+
+  get criticalIncidentsCount(): number {
+    return this.incidents.filter(i => i.status !== 'resolved' && (i.severity === 'critical' || i.title.toLowerCase().includes('oom') || i.title.toLowerCase().includes('crash'))).length;
   }
 
   get resolvedCount(): number {
-    return this.clusters.reduce((sum, c) => sum + c.resolved_incidents, 0);
+    return this.incidents.filter(i => i.status === 'resolved').length;
   }
 
-  formatCPU(cores: number): string {
-    return (cores * 1000).toFixed(1) + 'm';
+  get filteredIncidents(): Incident[] {
+    const q = this.searchQuery.toLowerCase().trim();
+    return this.incidents
+      .filter(i => i.status !== 'resolved')
+      .filter(i => !q || i.title.toLowerCase().includes(q) || i.id.toLowerCase().includes(q));
   }
 
-  formatMemory(bytes: number): string {
-    const mb = bytes / (1024 * 1024);
-    if (mb < 1) return (bytes / 1024).toFixed(0) + ' Ki';
-    return mb.toFixed(1) + ' Mi';
+  goToCluster(id: string): void {
+    this.router.navigate(['/clusters', id]);
   }
+
+  goToIncident(id: string): void {
+    this.router.navigate(['/incidents', id]);
+  }
+
+  
 }
